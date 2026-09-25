@@ -1,0 +1,35 @@
+# CloudFormation: App Runner service from an ECR image. NOT validated with cfn-lint or deployed
+# (no AWS account was used). TODO-verify property names against current AWS docs before use.
+# App Runner has no persistent disk: set DatabaseUrl to a Postgres (e.g. RDS/Neon) URL, otherwise
+# SQLite progress is lost on every deploy/restart.
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  ImageUri: {Type: String, Description: "ECR image, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/learning-coach:latest"}
+  EcrAccessRoleArn: {Type: String, Description: "IAM role App Runner uses to pull from ECR"}
+  DatabaseUrl: {Type: String, NoEcho: true}
+  ParentPin: {Type: String, NoEcho: true, AllowedPattern: '^\d{4,8}$'}
+  McpAuthToken: {Type: String, NoEcho: true, Default: ""}
+  SessionSecret: {Type: String, NoEcho: true}
+Resources:
+  Service:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: learning-coach
+      SourceConfiguration:
+        AuthenticationConfiguration: {AccessRoleArn: !Ref EcrAccessRoleArn}
+        AutoDeploymentsEnabled: false
+        ImageRepository:
+          ImageIdentifier: !Ref ImageUri
+          ImageRepositoryType: ECR
+          ImageConfiguration:
+            Port: "8000"
+            RuntimeEnvironmentVariables:
+              - {Name: DATABASE_URL, Value: !Ref DatabaseUrl}
+              - {Name: PARENT_PIN, Value: !Ref ParentPin}
+              - {Name: MCP_AUTH_TOKEN, Value: !Ref McpAuthToken}
+              - {Name: SESSION_SECRET, Value: !Ref SessionSecret}
+              - {Name: COOKIE_SECURE, Value: "1"}
+      HealthCheckConfiguration: {Protocol: HTTP, Path: /healthz}
+      InstanceConfiguration: {Cpu: "0.25 vCPU", Memory: "0.5 GB"}
+Outputs:
+  ServiceUrl: {Value: !Sub "https://${Service.ServiceUrl}"}

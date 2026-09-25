@@ -1,0 +1,4 @@
+mcp>=1.27,<2
+uvicorn
+python-multipart
+# optional, for Postgres: psycopg[binary]>=3.1

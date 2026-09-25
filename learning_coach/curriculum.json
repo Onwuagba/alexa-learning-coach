@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "topics": {
+    "abacus": {
+      "title": "Abacus counting",
+      "min_age": 3,
+      "levels": [
+        {"level": 1, "kind": "count", "max": 10},
+        {"level": 2, "kind": "add", "max": 10},
+        {"level": 3, "kind": "add", "max": 20},
+        {"level": 4, "kind": "subtract", "max": 20},
+        {"level": 5, "kind": "add", "max": 100}
+      ]
+    },
+    "algebra": {
+      "title": "Balance the scales",
+      "min_age": 7,
+      "levels": [
+        {"level": 1, "kind": "x_plus_a", "max": 10},
+        {"level": 2, "kind": "x_plus_a", "max": 50},
+        {"level": 3, "kind": "a_times_x", "max": 10},
+        {"level": 4, "kind": "a_times_x_plus_b", "max": 10}
+      ]
+    },
+    "geography": {
+      "title": "Countries and capitals",
+      "min_age": 5,
+      "levels": [
+        {"level": 1, "kind": "continent", "region": "africa"},
+        {"level": 2, "kind": "capital", "region": "africa"},
+        {"level": 3, "kind": "capital", "region": "world"}
+      ]
+    }
+  },
+  "countries": [
+    {"name": "Nigeria", "capital": "Abuja", "continent": "Africa", "region": "africa"},
+    {"name": "Ghana", "capital": "Accra", "continent": "Africa", "region": "africa"},
+    {"name": "Kenya", "capital": "Nairobi", "continent": "Africa", "region": "africa"},
+    {"name": "Egypt", "capital": "Cairo", "continent": "Africa", "region": "africa"},
+    {"name": "South Africa", "capital": "Pretoria", "continent": "Africa", "region": "africa"},
+    {"name": "Senegal", "capital": "Dakar", "continent": "Africa", "region": "africa"},
+    {"name": "Ethiopia", "capital": "Addis Ababa", "continent": "Africa", "region": "africa"},
+    {"name": "Morocco", "capital": "Rabat", "continent": "Africa", "region": "africa"},
+    {"name": "France", "capital": "Paris", "continent": "Europe", "region": "world"},
+    {"name": "Japan", "capital": "Tokyo", "continent": "Asia", "region": "world"},
+    {"name": "Brazil", "capital": "Brasília", "continent": "South America", "region": "world"},
+    {"name": "Canada", "capital": "Ottawa", "continent": "North America", "region": "world"},
+    {"name": "Australia", "capital": "Canberra", "continent": "Oceania", "region": "world"},
+    {"name": "India", "capital": "New Delhi", "continent": "Asia", "region": "world"}
+  ]
+}
