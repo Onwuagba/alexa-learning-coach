@@ -2,3 +2,4 @@ mcp>=1.27,<2
 uvicorn
 python-multipart
 # optional, for Postgres: psycopg[binary]>=3.1
+# optional: pip install boto3 for the AWS Secrets Manager adapter (unverified)

@@ -1,8 +1,19 @@
 # Alexa+ Learning Coach
 
-Amazon Developer Hackathon 2026 — **Alexa+ track**. A voice practice coach for kids
-(abacus, algebra, geography) built as a self-hosted MCP server. Difficulty adapts: two right
-answers in a row levels up, two wrong levels down. Parents unlock new topics with a PIN.
+Amazon Developer Hackathon 2026, **Alexa+ track**. A voice-first practice coach for kids, built as a self-hosted
+MCP server, with a parent dashboard and a REST API for a Fire TV companion app. It is designed as a product for
+many families, not a single-household demo.
+
+**What makes it a product**
+
+| Area | What is built |
+| --- | --- |
+| Families as tenants | Sign-up, per-family PIN, per-family Alexa link token and TV token (hashed at rest, rotatable), several children per family, spoken-name matching ("Toby" finds Tobi), strict tenant isolation (tested over real MCP and REST). The env vars `PARENT_PIN`, `MCP_AUTH_TOKEN`, `TV_API_TOKEN` keep working as a single-family fallback (`default` family). |
+| Learning science | Leitner spaced repetition (tricky items return later), per-skill mastery, adaptive difficulty inside a level ("stretch" from recent accuracy) on top of level up/down, progressive hints with partial credit, varied encouraging feedback. |
+| Content | 8 topics: abacus, algebra, geography (60 countries, 4 levels), times tables, fractions, spelling bee, reading stories, science. Validated by tests and a script. |
+| Voice UX | Every reply has `say` (plain, TTS-safe) and `ssml`; "ask again" on unintelligible answers; number words, homophones ("to" is 2), fractions ("three quarters"), spelled letters ("c a t"), fillers ("it's..."), fuzzy names; intents: hint, repeat, don't know, stop; end-of-session recap. |
+| Parent value | Dashboard with inline-SVG charts (14-day activity, skill mastery, goal ring), streaks, badges, weekly goals, daily time limits, topic lock/unlock, weekly report (email-ready HTML + text; sending stubbed), data export and delete. |
+| Hardening | Rate limiting, JSON logs with no child data, `/metrics` counters, secrets from env or AWS Secrets Manager (unverified), versioned migrations, Postgres 16 tested locally, per-family PIN lockout, CSP and security headers. |
 
 ## Run
 
@@ -10,68 +21,86 @@ answers in a row levels up, two wrong levels down. Parents unlock new topics wit
 python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 PARENT_PIN=1234 .venv/bin/python -m learning_coach.server
 #  MCP          http://localhost:8000/mcp/
-#  Parent page  http://localhost:8000/parent/
-#  Health       http://localhost:8000/healthz
-.venv/bin/python -m pytest -q
-.venv/bin/python scripts/demo.py     # offline scripted demo
+#  Parent page  http://localhost:8000/parent/   (sign up a family, or sign in with a blank family code + PIN 1234)
+#  Health       http://localhost:8000/healthz     Metrics http://localhost:8000/metrics
+.venv/bin/python -m pytest -q                       # ~180 tests; 2 Postgres tests skip unless enabled (below)
+.venv/bin/python scripts/demo.py                    # offline scripted demo (shows every feature)
+.venv/bin/python scripts/seed_demo.py --db demo.db  # 2 weeks of synthetic history for dashboard screenshots
+.venv/bin/python -m learning_coach.validate         # content validation
+.venv/bin/python -m learning_coach.reports --family demo --html > report.html
+.venv/bin/python -m learning_coach.migrate --status
 ```
 
-Env: `PORT`, `DATABASE_URL` (Postgres URL, needs `psycopg[binary]`) or `PROGRESS_DB` (SQLite path, default),
-`PARENT_PIN` (4-8 digits; if unset a random one is printed once and its hash stored),
-`MCP_AUTH_TOKEN` (optional; require `Authorization: Bearer ...` on `/mcp`), `TV_API_TOKEN` (enables the TV REST API; unset = `/api` answers 503), `TV_CORS_ORIGINS` (default: local Expo web/preview ports), `SESSION_SECRET`, `COOKIE_SECURE=1`.
+Postgres tests: `TEST_PG_ADMIN_URL=postgresql://user@127.0.0.1:5432/postgres .venv/bin/python -m pytest tests/test_postgres.py`
+(creates and drops a throwaway database; needs `psycopg[binary]`).
 
-## Tools
+## Configuration
+
+| Env | Meaning |
+| --- | --- |
+| `DATABASE_URL` / `PROGRESS_DB` | Postgres URL (needs `psycopg[binary]`) or SQLite path (default `progress.db`) |
+| `PARENT_PIN` | PIN of the `default` family (4-8 digits). Unset: a random one is printed once. |
+| `MCP_AUTH_TOKEN`, `TV_API_TOKEN` | Single-family fallback bearer tokens (map to `default`). Families get their own tokens at sign-up. |
+| `REQUIRE_MCP_AUTH=1` | Reject anonymous `/mcp` even when `MCP_AUTH_TOKEN` is unset (recommended for any public deployment) |
+| `ALLOW_SIGNUP=0` | Disable self-service family sign-up |
+| `SESSION_SECRET`, `COOKIE_SECURE=1` | Dashboard cookie signing / Secure flag |
+| `RATE_LIMIT_PER_MIN` (240), `AUTH_RATE_LIMIT_PER_MIN` (10), `TRUST_PROXY=1` | Per-IP limits (in-memory, per process); trust `X-Forwarded-For` behind a proxy |
+| `METRICS_TOKEN` | Bearer token for `/metrics` |
+| `LOG_LEVEL` | JSON logs to stderr |
+| `SRS_SCALE` | Multiplier for spaced-repetition intervals (demo/testing) |
+| `REPORT_MODE=smtp`, `REPORT_SMTP_HOST/PORT/USER/PASSWORD`, `REPORT_FROM` | Real report sending (**unverified**); default is a stub |
+| `AWS_SECRETS_ID` | Read secrets (same names as the env vars) from an AWS Secrets Manager JSON secret (**unverified**, needs `boto3`) |
+| `TV_CORS_ORIGINS` | Allowed browser origins for the TV REST API |
+
+## MCP tools
+
+The bearer token identifies the family; no tool takes a family argument. `child` is optional when a family has one child.
+Every tool returns `say` (speak this) and `ssml` where useful.
 
 | Tool | What it does |
 | --- | --- |
-| `start_session(child)` | Topics the child can practise + current level |
-| `next_question(child, topic)` | Generates a question; Alexa+ reads `prompt` aloud |
-| `check_answer(child, answer)` | Grades, adapts level (2 right = up, 2 wrong = down) |
-| `get_progress(child)` | Parent summary |
-| `unlock_topic(child, topic, parent_pin)` | Parent-only unlock |
+| `list_children()` | Roster, so the agent can ask "who is practising?" |
+| `start_session(child?)` | Fuzzy-matched child, streak, topics, reviews waiting. `need_child: true` means "ask which child". |
+| `next_question(child?, topic?)` | Empty topic: the coach picks (due reviews first). Spoken topics work ("times tables", "capitals"). Revisits tricky items (spaced repetition). Respects locks and daily time limit. |
+| `check_answer(answer, child?)` | Forgiving grading; adapts level and difficulty; `reprompt: true` = ask again; understands "hint", "again", "I don't know", "I'm done" |
+| `get_hint(child?)`, `repeat_question(child?)` | Progressive hints (partial credit), repeat the question |
+| `end_session(child?)` | Spoken recap: questions, accuracy, topics, streak, badges |
+| `get_progress(child?)` | Parent summary: skills, badges, streak, week |
+| `unlock_topic(topic, parent_pin, child?)`, `lock_topic(...)` | Parent-only, needs the family PIN (5 misses lock that family out for 5 minutes) |
 
-Hardening: child names validated/normalised, topics whitelisted, answer length capped, questions single-use and
-expire after 15 min, PIN stored as scrypt hash, 5 wrong PINs locks unlock attempts for 5 min (global, not per child),
-per-child isolation. The parent PIN is one PIN per deployment (a household), not per family.
+## Fire TV REST API (backward compatible)
 
-## Fire TV REST API
-
-Lets the Fire TV app (`../firetv-learning-games`) show and add to the same child's progress. Own token, separate from MCP and the parent PIN. Defined by us, not by Amazon.
+Unchanged contract, now per family (the family's TV token selects the tenant). Defined by us, not by Amazon.
 
 | Request | Effect |
 | --- | --- |
-| `GET /api/progress/{child}` | `{child, progress:{topic:{level,correct,attempts,streak,updatedAt}}, available:[...], promoteAfter}` (only unlocked topics) |
-| `POST /api/progress/{child}/events` body `{"events":[{"id","topic","correct","at"}]}` (max 100, 64 KB) | Applies answers with the coach's own rules; idempotent per event id; returns the same shape + `{applied, duplicates, rejected:[{id,reason}]}` |
+| `GET /api/progress/{child}` | `{child, progress:{topic:{level,correct,attempts,streak,updatedAt}}, available:[...], promoteAfter}` (unlocked topics only) |
+| `POST /api/progress/{child}/events` body `{"events":[{"id","topic","correct","at"}]}` | Applies answers with the coach's rules; idempotent per event id; returns the same shape + `{applied, duplicates, rejected}` |
 
-Security: `Authorization: Bearer $TV_API_TOKEN` (constant-time compare; 503 if unset); strict validation (400/413); events for locked topics are rejected and the API has no unlock path (unlocking still needs the PIN via MCP/parent page); TV cannot supply levels; the TV token does not work on `/mcp` and vice versa; CORS allows only listed origins. Limits: no per-token rate limiting; one shared TV token (not per child); the token sits in the TV app bundle; event-id dedupe table is never pruned.
-
-Demo end to end (needs the sibling repo's Expo app):
-
-```bash
-PARENT_PIN=1234 MCP_AUTH_TOKEN=m TV_API_TOKEN=t .venv/bin/python -m learning_coach.server
-# TV app:  EXPO_PUBLIC_COACH_URL=http://127.0.0.1:8000 EXPO_PUBLIC_TV_TOKEN=t EXPO_PUBLIC_CHILD=ada npm run app:web
-.venv/bin/python scripts/demo_tv.py --child ada --answers 2 --db progress.db --mcp-token m   # the child "answers" over real MCP
-```
-The TV then shows Abacus Level 2. `demo_tv.py` stands in for Alexa+ (how Alexa+ calls MCP servers is **[TODO-verify]**).
+New: an unknown child of a non-default family answers 404 (the default family still creates children on first use, as before). TV answers now also feed the parent dashboard and streaks.
+**Curriculum note for the TV app:** new topics use new question kinds (`times_table`, `division_facts`, `half_of`,
+`fraction_of`, `add_fractions`, `simplify_fraction`, `items`), see `../shared-curriculum/README.md`. A TV build that only knows the
+old kinds must skip topics it cannot generate. Geography gained a level 4 and ~45 countries (old levels/kinds unchanged).
 
 ## Architecture
 
-`service.py` (logic) is used by `server.py` (MCP tools), `web.py` (parent page) and `tvapi.py` (TV REST API). `store.py` is one SQL store
-for SQLite (default) and Postgres (written, **not tested against a real Postgres**).
+```
+Alexa+ --MCP/HTTP--> server.py (per-request family from bearer token) --> service.py (Coach) --> store.py --> SQLite | Postgres
+Parent browser ----> web.py (signed cookie, family scoped) ------------/        |-- voice.py (matching, feedback, SSML)
+Fire TV app ------> tvapi.py (per-family token) ------------------------/       |-- learning.py (SRS, mastery, badges, time)
+                                         ops.py: rate limit, JSON logs, metrics, secrets     reports.py: weekly report
+```
 
-## Deploy and connect to Alexa+
+## Deploy, privacy, and connecting to Alexa+
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) (Docker, ECR, App Runner CloudFormation in `infra/`). Manual steps are marked **[MANUAL]**.
+- [docs/DEPLOY.md](docs/DEPLOY.md): Docker, App Runner, Postgres, secrets, operations. Manual steps are marked **[MANUAL]**.
+- [docs/PRIVACY.md](docs/PRIVACY.md): what data is stored, COPPA/GDPR-minded design notes (not legal advice).
+- Connecting to Alexa+ **[MANUAL] [TODO-verify]**: how Alexa+ registers third-party MCP servers, its auth options and how a child/profile identity reaches a tool were not verified. The design assumes a bearer token per family on `/mcp`; `list_children` and `need_child` exist because a profile id may not be passed. Test with `npx @modelcontextprotocol/inspector`.
 
-Connecting to Alexa+ **[MANUAL] [TODO-verify]**: I could not verify how Alexa+ registers third-party MCP servers.
-Follow the hackathon Resources page ("Build with Agent Skills"). Expected inputs: your public HTTPS URL
-`https://<host>/mcp/` and, if required, the bearer token set in `MCP_AUTH_TOKEN`. Confirm supported auth
-(bearer vs OAuth) and how a child/profile id is passed. Meanwhile test with `npx @modelcontextprotocol/inspector`.
+## Honest limits
 
-## Submission material
+Not verified against a real Alexa+ device; the dashboard was checked through HTTP tests and HTML review, not on real phones; email sending, AWS Secrets Manager and App Runner are unverified; rate limits are per process; single Postgres connection per process; spaced-repetition intervals and mastery weights are reasonable defaults, not tuned on real children. Details in docs/DEPLOY.md.
 
-[docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md), [docs/AMAZON_FEEDBACK.md](docs/AMAZON_FEEDBACK.md) (drafts).
-
-Content comes from `learning_coach/curriculum.json` — a copy of `shared-curriculum/curriculum.json`.
+Submission material: [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md), [docs/AMAZON_FEEDBACK.md](docs/AMAZON_FEEDBACK.md). Content: `learning_coach/curriculum.json` is a copy of `../shared-curriculum/curriculum.json` (a test checks they match).
 
 License: MIT

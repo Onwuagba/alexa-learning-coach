@@ -1,19 +1,26 @@
-# 3-minute demo video script (DRAFT)
+# 3-minute demo video script (DRAFT, v2)
 
-Total ~3:00. Screen: terminal + parent web page + Alexa device/app. **[TODO-verify]** any on-device Alexa+ footage depends on your integration working; fall back to `python scripts/demo.py` on screen.
+Total ~3:00. Screen: split view. Left: Alexa device/app or the terminal running `python scripts/demo.py`. Right: the parent dashboard
+seeded with `python scripts/seed_demo.py --db demo.db` (sign in with family code `demo`, PIN `4321`) and the Fire TV app.
+**[TODO-verify]** On-device Alexa+ footage depends on your integration working; otherwise say plainly that Alexa is simulated by an MCP client and show `scripts/demo.py`.
 
-**0:00-0:20 Hook.** "Kids ask Alexa for everything, but practice with feedback? Meet Learning Coach: 'Alexa, let's practice.'" Show a child speaking to the device.
+**0:00-0:15 Hook (idea + impact).** "Kids ask Alexa for everything, but nobody checks whether they are actually learning. Learning Coach turns Alexa+ into a patient tutor that remembers every child, revisits what they struggle with, and tells parents what happened this week."
 
-**0:20-1:20 Child flow.** Child: "Let's practice abacus." Coach asks level 1 ("I slide 4 beads across. How many?"). Correct twice -> "Level up!" -> level 2 question ("What is 3 plus 3?"). Point out: adapts, two right = up, two wrong = down; forgiving answer matching.
+**0:15-0:40 Families, not a demo.** Two family sign-ups on screen. Point at: each family gets its own PIN, an Alexa link token and a Fire TV token (shown once, hashed at rest). Say "many households, one server, strict isolation". Quick cut: the Smiths ask for "Ada" and are refused (Coach: "I don't know Ada yet. Is it Ben?").
 
-**1:20-1:45 Locked topic.** Child asks for algebra: "Ask a parent to unlock it."
+**0:40-1:30 The voice experience (the core).**
+- "Alexa, ask Learning Coach to start." Coach: "Who is practising? Is it Ada or Tobi?" Child: "Toby." Matched by sound.
+- "Let's do times tables." Question. Child: "hint please." Coach gives a hint. Child answers "for" (STT for four): accepted. Show partial credit for hinted answers.
+- "I don't know." Coach: "That's okay. The answer is 120." Two questions later: "Here's one to remember" (spaced repetition brings it back).
+- Fractions: child says "three quarters"; spelling: child spells "c a t".
+- "I'm done." Spoken recap with questions, accuracy, streak and a badge.
 
-**1:45-2:20 Parent flow.** Open `/parent/`, sign in with PIN, show progress table (levels, accuracy), unlock algebra for Ada. Mention hashed PIN, lockout after 5 misses.
+**1:30-2:10 The parent dashboard.** Seeded dashboard: 14-day activity chart, skill mastery bars, streak, goal ring, badges, "Tricky ones coming back". Lock Times tables with the PIN; the child is told to ask a parent. Set a 20-minute daily limit. Open the weekly report (HTML email view) and note that sending is stubbed until SMTP is configured.
 
-**2:20-2:35 Fire TV link.** Show the Fire TV app (web target) next to the terminal: the child's level on the TV matches what was just practised by voice. Live: `python scripts/demo_tv.py --answers 2` while the TV app polls. [TODO-verify] say it is a simulated Alexa+ unless real Alexa+ footage is used.
+**2:10-2:30 Fire TV link.** Same child on the TV app (web target) shows the level just earned by voice; a TV answer shows up in the dashboard. Backward-compatible REST API with per-family tokens.
 
-**2:35-2:50 Under the hood.** Diagram: Alexa+ -> MCP over streamable HTTP -> FastMCP server -> SQLite/Postgres; shared curriculum JSON with the Fire TV games. Hosted on AWS App Runner (say only if deployed).
+**2:30-2:50 Under the hood (tech).** One diagram: Alexa+ -> MCP over streamable HTTP -> family from bearer token -> service -> SQLite/Postgres (tested on Postgres 16). Mention: shared curriculum JSON with 8 topics and 60 countries, forgiving speech matching, spaced repetition, migrations, rate limiting, metrics, ~180 tests. Say "hosted on AWS App Runner" only if actually deployed.
 
-**2:50-3:00 Close.** "Voice-first practice that grows with the child and keeps parents in control." Repo + MIT license.
+**2:50-3:00 Close + honesty.** "Voice-first practice that grows with the child and keeps parents in control. Privacy by design: nicknames only, export and delete in one click." Show repo + MIT license. Mention what is simulated.
 
-Recording checklist: [MANUAL] record voiceover, confirm final length under limit, check hackathon rules for video requirements.
+Recording checklist **[MANUAL]**: record voiceover; confirm length and rules on the hackathon page; capture the dashboard in both light and dark mode; make sure no real tokens are on screen (regenerate with Rotate tokens after filming).

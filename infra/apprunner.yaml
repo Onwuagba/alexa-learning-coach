@@ -29,6 +29,8 @@ Resources:
               - {Name: MCP_AUTH_TOKEN, Value: !Ref McpAuthToken}
               - {Name: SESSION_SECRET, Value: !Ref SessionSecret}
               - {Name: COOKIE_SECURE, Value: "1"}
+              - {Name: REQUIRE_MCP_AUTH, Value: "1"}
+              - {Name: TRUST_PROXY, Value: "1"}  # TODO-verify: App Runner forwards the client IP in X-Forwarded-For
       HealthCheckConfiguration: {Protocol: HTTP, Path: /healthz}
       InstanceConfiguration: {Cpu: "0.25 vCPU", Memory: "0.5 GB"}
 Outputs:

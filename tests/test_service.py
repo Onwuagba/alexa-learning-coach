@@ -40,7 +40,7 @@ def test_level_up_and_down_through_service(coach):
     assert r["levelled_up"] and r["level"] == 2
     for _ in range(2):
         coach.next_question("ada", "abacus")
-        r = coach.check_answer("ada", "banana")
+        r = coach.check_answer("ada", "99999")
     assert r["levelled_down"] and r["level"] == 1
 
 
@@ -82,7 +82,7 @@ def test_pending_expires(coach, monkeypatch):
 
 
 def test_pin_is_hashed_not_stored(coach):
-    stored = coach.store.get_setting("pin_hash")
+    stored = coach.store.family("default")["pin_hash"]
     assert "1234" not in stored and stored.count("$") == 2
 
 
@@ -91,7 +91,7 @@ def test_pin_lockout(coach):
         assert coach.unlock_topic("ada", "algebra", "0000")["error"]
     r = coach.unlock_topic("ada", "algebra", "1234")  # correct PIN, but locked
     assert "Too many" in r["error"]
-    coach.store.set_setting("locked_until", "0")
+    coach.store.update_family("default", locked_until=0)
     assert coach.unlock_topic("ada", "algebra", "1234")["unlocked"]
 
 
@@ -188,7 +188,8 @@ def test_mcp_over_http(tmp_path, monkeypatch):
                     res = await s.call_tool("next_question", {"child": "ada", "topic": "abacus"})
                     return names, res.structuredContent or res.content[0].text
         names, out = asyncio.run(run())
-        assert names == {"start_session", "next_question", "check_answer", "get_progress", "unlock_topic"}
+        assert names == {"list_children", "start_session", "next_question", "check_answer", "get_hint", "repeat_question",
+                         "end_session", "get_progress", "unlock_topic", "lock_topic"}
         assert "prompt" in str(out)
     finally:
         server.should_exit = True; t.join(5)

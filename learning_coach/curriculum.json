@@ -1,51 +1,1368 @@
 {
-  "version": 1,
-  "topics": {
-    "abacus": {
-      "title": "Abacus counting",
-      "min_age": 3,
-      "levels": [
-        {"level": 1, "kind": "count", "max": 10},
-        {"level": 2, "kind": "add", "max": 10},
-        {"level": 3, "kind": "add", "max": 20},
-        {"level": 4, "kind": "subtract", "max": 20},
-        {"level": 5, "kind": "add", "max": 100}
-      ]
+ "version": 1,
+ "topics": {
+  "abacus": {
+   "title": "Abacus counting",
+   "min_age": 3,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "count",
+     "max": 10
     },
-    "algebra": {
-      "title": "Balance the scales",
-      "min_age": 7,
-      "levels": [
-        {"level": 1, "kind": "x_plus_a", "max": 10},
-        {"level": 2, "kind": "x_plus_a", "max": 50},
-        {"level": 3, "kind": "a_times_x", "max": 10},
-        {"level": 4, "kind": "a_times_x_plus_b", "max": 10}
-      ]
+    {
+     "level": 2,
+     "kind": "add",
+     "max": 10
     },
-    "geography": {
-      "title": "Countries and capitals",
-      "min_age": 5,
-      "levels": [
-        {"level": 1, "kind": "continent", "region": "africa"},
-        {"level": 2, "kind": "capital", "region": "africa"},
-        {"level": 3, "kind": "capital", "region": "world"}
-      ]
+    {
+     "level": 3,
+     "kind": "add",
+     "max": 20
+    },
+    {
+     "level": 4,
+     "kind": "subtract",
+     "max": 20
+    },
+    {
+     "level": 5,
+     "kind": "add",
+     "max": 100
     }
+   ]
   },
-  "countries": [
-    {"name": "Nigeria", "capital": "Abuja", "continent": "Africa", "region": "africa"},
-    {"name": "Ghana", "capital": "Accra", "continent": "Africa", "region": "africa"},
-    {"name": "Kenya", "capital": "Nairobi", "continent": "Africa", "region": "africa"},
-    {"name": "Egypt", "capital": "Cairo", "continent": "Africa", "region": "africa"},
-    {"name": "South Africa", "capital": "Pretoria", "continent": "Africa", "region": "africa"},
-    {"name": "Senegal", "capital": "Dakar", "continent": "Africa", "region": "africa"},
-    {"name": "Ethiopia", "capital": "Addis Ababa", "continent": "Africa", "region": "africa"},
-    {"name": "Morocco", "capital": "Rabat", "continent": "Africa", "region": "africa"},
-    {"name": "France", "capital": "Paris", "continent": "Europe", "region": "world"},
-    {"name": "Japan", "capital": "Tokyo", "continent": "Asia", "region": "world"},
-    {"name": "Brazil", "capital": "Brasília", "continent": "South America", "region": "world"},
-    {"name": "Canada", "capital": "Ottawa", "continent": "North America", "region": "world"},
-    {"name": "Australia", "capital": "Canberra", "continent": "Oceania", "region": "world"},
-    {"name": "India", "capital": "New Delhi", "continent": "Asia", "region": "world"}
-  ]
+  "algebra": {
+   "title": "Balance the scales",
+   "min_age": 7,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "x_plus_a",
+     "max": 10
+    },
+    {
+     "level": 2,
+     "kind": "x_plus_a",
+     "max": 50
+    },
+    {
+     "level": 3,
+     "kind": "a_times_x",
+     "max": 10
+    },
+    {
+     "level": 4,
+     "kind": "a_times_x_plus_b",
+     "max": 10
+    }
+   ]
+  },
+  "geography": {
+   "title": "Countries and capitals",
+   "min_age": 5,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "continent",
+     "region": "africa"
+    },
+    {
+     "level": 2,
+     "kind": "capital",
+     "region": "africa"
+    },
+    {
+     "level": 3,
+     "kind": "capital",
+     "region": "world"
+    },
+    {
+     "level": 4,
+     "kind": "continent",
+     "region": "world"
+    }
+   ]
+  },
+  "times_tables": {
+   "title": "Times tables",
+   "min_age": 6,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "times_table",
+     "tables": [
+      2,
+      5,
+      10
+     ]
+    },
+    {
+     "level": 2,
+     "kind": "times_table",
+     "tables": [
+      3,
+      4
+     ]
+    },
+    {
+     "level": 3,
+     "kind": "times_table",
+     "tables": [
+      6,
+      7
+     ]
+    },
+    {
+     "level": 4,
+     "kind": "times_table",
+     "tables": [
+      8,
+      9,
+      11,
+      12
+     ]
+    },
+    {
+     "level": 5,
+     "kind": "division_facts",
+     "tables": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ]
+    }
+   ]
+  },
+  "fractions": {
+   "title": "Fractions",
+   "min_age": 7,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "half_of",
+     "max": 20
+    },
+    {
+     "level": 2,
+     "kind": "fraction_of",
+     "denominators": [
+      2,
+      3,
+      4
+     ]
+    },
+    {
+     "level": 3,
+     "kind": "add_fractions",
+     "denominators": [
+      4,
+      5,
+      6,
+      8,
+      10
+     ]
+    },
+    {
+     "level": 4,
+     "kind": "simplify_fraction",
+     "denominators": [
+      4,
+      6,
+      8,
+      10,
+      12
+     ]
+    }
+   ]
+  },
+  "spelling": {
+   "title": "Spelling bee",
+   "min_age": 5,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sp-cat",
+       "prompt": "Spell the word cat.",
+       "answer": "cat",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with c and has 3 letters."
+      },
+      {
+       "id": "sp-dog",
+       "prompt": "Spell the word dog.",
+       "answer": "dog",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with d and has 3 letters."
+      },
+      {
+       "id": "sp-sun",
+       "prompt": "Spell the word sun.",
+       "answer": "sun",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with s and has 3 letters."
+      },
+      {
+       "id": "sp-hat",
+       "prompt": "Spell the word hat.",
+       "answer": "hat",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with h and has 3 letters."
+      },
+      {
+       "id": "sp-bed",
+       "prompt": "Spell the word bed.",
+       "answer": "bed",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with b and has 3 letters."
+      },
+      {
+       "id": "sp-pig",
+       "prompt": "Spell the word pig.",
+       "answer": "pig",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with p and has 3 letters."
+      },
+      {
+       "id": "sp-cup",
+       "prompt": "Spell the word cup.",
+       "answer": "cup",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with c and has 3 letters."
+      },
+      {
+       "id": "sp-red",
+       "prompt": "Spell the word red.",
+       "answer": "red",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with r and has 3 letters."
+      },
+      {
+       "id": "sp-bus",
+       "prompt": "Spell the word bus.",
+       "answer": "bus",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with b and has 3 letters."
+      },
+      {
+       "id": "sp-map",
+       "prompt": "Spell the word map.",
+       "answer": "map",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with m and has 3 letters."
+      }
+     ]
+    },
+    {
+     "level": 2,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sp-fish",
+       "prompt": "Spell the word fish.",
+       "answer": "fish",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with f and has 4 letters."
+      },
+      {
+       "id": "sp-jump",
+       "prompt": "Spell the word jump.",
+       "answer": "jump",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with j and has 4 letters."
+      },
+      {
+       "id": "sp-tree",
+       "prompt": "Spell the word tree.",
+       "answer": "tree",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with t and has 4 letters."
+      },
+      {
+       "id": "sp-book",
+       "prompt": "Spell the word book.",
+       "answer": "book",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with b and has 4 letters."
+      },
+      {
+       "id": "sp-milk",
+       "prompt": "Spell the word milk.",
+       "answer": "milk",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with m and has 4 letters."
+      },
+      {
+       "id": "sp-green",
+       "prompt": "Spell the word green.",
+       "answer": "green",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with g and has 5 letters."
+      },
+      {
+       "id": "sp-apple",
+       "prompt": "Spell the word apple.",
+       "answer": "apple",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with a and has 5 letters."
+      },
+      {
+       "id": "sp-happy",
+       "prompt": "Spell the word happy.",
+       "answer": "happy",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with h and has 5 letters."
+      },
+      {
+       "id": "sp-water",
+       "prompt": "Spell the word water.",
+       "answer": "water",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with w and has 5 letters."
+      },
+      {
+       "id": "sp-house",
+       "prompt": "Spell the word house.",
+       "answer": "house",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with h and has 5 letters."
+      }
+     ]
+    },
+    {
+     "level": 3,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sp-friend",
+       "prompt": "Spell the word friend.",
+       "answer": "friend",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with f and has 6 letters."
+      },
+      {
+       "id": "sp-school",
+       "prompt": "Spell the word school.",
+       "answer": "school",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with s and has 6 letters."
+      },
+      {
+       "id": "sp-because",
+       "prompt": "Spell the word because.",
+       "answer": "because",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with b and has 7 letters."
+      },
+      {
+       "id": "sp-purple",
+       "prompt": "Spell the word purple.",
+       "answer": "purple",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with p and has 6 letters."
+      },
+      {
+       "id": "sp-orange",
+       "prompt": "Spell the word orange.",
+       "answer": "orange",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with o and has 6 letters."
+      },
+      {
+       "id": "sp-family",
+       "prompt": "Spell the word family.",
+       "answer": "family",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with f and has 6 letters."
+      },
+      {
+       "id": "sp-animal",
+       "prompt": "Spell the word animal.",
+       "answer": "animal",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with a and has 6 letters."
+      },
+      {
+       "id": "sp-elephant",
+       "prompt": "Spell the word elephant.",
+       "answer": "elephant",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with e and has 8 letters."
+      }
+     ]
+    },
+    {
+     "level": 4,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sp-beautiful",
+       "prompt": "Spell the word beautiful.",
+       "answer": "beautiful",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with b and has 9 letters."
+      },
+      {
+       "id": "sp-different",
+       "prompt": "Spell the word different.",
+       "answer": "different",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with d and has 9 letters."
+      },
+      {
+       "id": "sp-necessary",
+       "prompt": "Spell the word necessary.",
+       "answer": "necessary",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with n and has 9 letters."
+      },
+      {
+       "id": "sp-favorite",
+       "prompt": "Spell the word favorite.",
+       "answer": "favorite",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with f and has 8 letters."
+      },
+      {
+       "id": "sp-wednesday",
+       "prompt": "Spell the word Wednesday.",
+       "answer": "wednesday",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with W and has 9 letters."
+      },
+      {
+       "id": "sp-library",
+       "prompt": "Spell the word library.",
+       "answer": "library",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with l and has 7 letters."
+      },
+      {
+       "id": "sp-february",
+       "prompt": "Spell the word February.",
+       "answer": "february",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with F and has 8 letters."
+      },
+      {
+       "id": "sp-island",
+       "prompt": "Spell the word island.",
+       "answer": "island",
+       "match": "letters",
+       "skill": "spelling",
+       "hint": "It starts with i and has 6 letters."
+      }
+     ]
+    }
+   ]
+  },
+  "reading": {
+   "title": "Reading stories",
+   "min_age": 5,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "items",
+     "items": [
+      {
+       "id": "rc1-1",
+       "prompt": "Listen. Sam has a red kite. The kite is very high. What colour is Sam's kite?",
+       "answer": "red",
+       "skill": "reading",
+       "match": "text",
+       "hint": "Listen for the colour word."
+      },
+      {
+       "id": "rc1-2",
+       "prompt": "Listen. Mia has a small dog named Max. Max likes to run. What is the dog's name?",
+       "answer": "Max",
+       "skill": "reading",
+       "match": "text"
+      },
+      {
+       "id": "rc1-3",
+       "prompt": "Listen. The cat sat on the mat. The mat is blue. Where did the cat sit?",
+       "answer": "on the mat",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "mat",
+        "the mat"
+       ]
+      },
+      {
+       "id": "rc1-4",
+       "prompt": "Listen. Ben ate two apples and one pear. How many apples did Ben eat?",
+       "answer": "2",
+       "skill": "reading",
+       "match": "number",
+       "accept": [
+        "two"
+       ],
+       "hint": "Count the apples, not the pear."
+      },
+      {
+       "id": "rc1-5",
+       "prompt": "Listen. It is raining. Lola takes her umbrella. Why does Lola take her umbrella?",
+       "answer": "it is raining",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "rain",
+        "because it is raining",
+        "raining",
+        "the rain"
+       ]
+      },
+      {
+       "id": "rc1-6",
+       "prompt": "Listen. A frog can hop. A fish can swim. Which animal can swim?",
+       "answer": "fish",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "a fish",
+        "the fish"
+       ]
+      }
+     ]
+    },
+    {
+     "level": 2,
+     "kind": "items",
+     "items": [
+      {
+       "id": "rc2-1",
+       "prompt": "Listen. Tunde woke up early on Saturday. He packed a ball and a bottle of water and walked to the park. What did Tunde pack? Name one thing.",
+       "answer": "ball",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "water",
+        "a ball",
+        "bottle of water",
+        "a bottle of water",
+        "the ball",
+        "bottle"
+       ],
+       "hint": "Two things were packed. Name either one."
+      },
+      {
+       "id": "rc2-2",
+       "prompt": "Listen. Ama planted a bean seed on Monday. By Friday a small green shoot came up. What came up by Friday?",
+       "answer": "a small green shoot",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "shoot",
+        "a shoot",
+        "green shoot",
+        "small green shoot",
+        "a green shoot"
+       ]
+      },
+      {
+       "id": "rc2-3",
+       "prompt": "Listen. The bus was late, so Kofi ran to school. He got there just before the bell. Why did Kofi run?",
+       "answer": "the bus was late",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "bus was late",
+        "because the bus was late",
+        "late",
+        "he was late",
+        "bus late"
+       ]
+      },
+      {
+       "id": "rc2-4",
+       "prompt": "Listen. Grandma bakes bread every Sunday. The smell fills the house. When does Grandma bake bread?",
+       "answer": "sunday",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "on sunday",
+        "every sunday",
+        "sundays"
+       ]
+      },
+      {
+       "id": "rc2-5",
+       "prompt": "Listen. Zainab was sad because her balloon flew away. Her brother gave her his balloon. How did her brother help?",
+       "answer": "he gave her his balloon",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "gave her his balloon",
+        "gave her a balloon",
+        "his balloon",
+        "he gave her a balloon",
+        "gave her balloon"
+       ]
+      },
+      {
+       "id": "rc2-6",
+       "prompt": "Listen. The lion is big and strong. The mouse is small and quick. Which animal is quick?",
+       "answer": "mouse",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "the mouse",
+        "a mouse"
+       ]
+      }
+     ]
+    },
+    {
+     "level": 3,
+     "kind": "items",
+     "items": [
+      {
+       "id": "rc3-1",
+       "prompt": "Listen. Ife saved five coins each week for four weeks to buy a book that cost twenty coins. Did she have enough?",
+       "answer": "yes",
+       "skill": "reading",
+       "match": "exact",
+       "accept": [
+        "yes she did",
+        "she did",
+        "yeah"
+       ],
+       "hint": "Multiply five by four."
+      },
+      {
+       "id": "rc3-2",
+       "prompt": "Listen. The river was rising, so the villagers moved their goats to higher ground. What does this tell us about the river?",
+       "answer": "it might flood",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "flood",
+        "it was going to flood",
+        "it will flood",
+        "it is dangerous",
+        "flooding",
+        "it was flooding",
+        "it could flood"
+       ],
+       "hint": "Why would you move animals away from water?"
+      },
+      {
+       "id": "rc3-3",
+       "prompt": "Listen. Chidi read the first chapter slowly, then the rest quickly because the story was exciting. How did Chidi feel about the story?",
+       "answer": "excited",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "he liked it",
+        "it was exciting",
+        "he enjoyed it",
+        "interested",
+        "he found it exciting",
+        "he was excited",
+        "happy"
+       ]
+      },
+      {
+       "id": "rc3-4",
+       "prompt": "Listen. Because it was freezing, Nia wore a coat, a scarf and gloves. What was the weather like?",
+       "answer": "cold",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "freezing",
+        "very cold",
+        "it was cold",
+        "it was freezing"
+       ]
+      },
+      {
+       "id": "rc3-5",
+       "prompt": "Listen. Yaw is the tallest in his class, but Kwesi is taller than Ama. Ama is taller than Efua. Who is the shortest of Ama, Kwesi and Efua?",
+       "answer": "efua",
+       "skill": "reading",
+       "match": "text",
+       "hint": "Put them in order from tallest to shortest."
+      },
+      {
+       "id": "rc3-6",
+       "prompt": "Listen. The teacher said, put your books away, then line up quietly. What should children do first?",
+       "answer": "put their books away",
+       "skill": "reading",
+       "match": "text",
+       "accept": [
+        "put books away",
+        "put away books",
+        "put your books away",
+        "books away",
+        "put the books away"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "science": {
+   "title": "Curious science",
+   "min_age": 5,
+   "levels": [
+    {
+     "level": 1,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sc1-1",
+       "prompt": "What colour is the sky on a clear day?",
+       "answer": "blue",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc1-2",
+       "prompt": "How many legs does a dog have?",
+       "answer": "4",
+       "skill": "science",
+       "match": "number",
+       "accept": [
+        "four"
+       ]
+      },
+      {
+       "id": "sc1-3",
+       "prompt": "Which animal says moo?",
+       "answer": "cow",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "a cow",
+        "the cow"
+       ]
+      },
+      {
+       "id": "sc1-4",
+       "prompt": "What do bees make?",
+       "answer": "honey",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc1-5",
+       "prompt": "Is ice hot or cold?",
+       "answer": "cold",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "it is cold",
+        "cold"
+       ]
+      },
+      {
+       "id": "sc1-6",
+       "prompt": "Which is a fruit, an apple or a carrot?",
+       "answer": "apple",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "an apple",
+        "the apple"
+       ]
+      },
+      {
+       "id": "sc1-7",
+       "prompt": "What do fish use to breathe under water?",
+       "answer": "gills",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "gill"
+       ],
+       "hint": "They are on the sides of a fish."
+      },
+      {
+       "id": "sc1-8",
+       "prompt": "What season comes after winter?",
+       "answer": "spring",
+       "skill": "science",
+       "match": "text"
+      }
+     ]
+    },
+    {
+     "level": 2,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sc2-1",
+       "prompt": "Which planet do we live on?",
+       "answer": "earth",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc2-2",
+       "prompt": "What is the closest star to Earth?",
+       "answer": "the sun",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "sun"
+       ],
+       "hint": "It gives us daylight."
+      },
+      {
+       "id": "sc2-3",
+       "prompt": "How many days are in a week?",
+       "answer": "7",
+       "skill": "science",
+       "match": "number",
+       "accept": [
+        "seven"
+       ]
+      },
+      {
+       "id": "sc2-4",
+       "prompt": "What gas do we breathe in to stay alive?",
+       "answer": "oxygen",
+       "skill": "science",
+       "match": "text",
+       "hint": "It starts with the letter o."
+      },
+      {
+       "id": "sc2-5",
+       "prompt": "What is water called when it freezes?",
+       "answer": "ice",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc2-6",
+       "prompt": "What is the largest ocean on Earth?",
+       "answer": "pacific",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "the pacific",
+        "pacific ocean",
+        "the pacific ocean"
+       ]
+      },
+      {
+       "id": "sc2-7",
+       "prompt": "How many planets are in our solar system?",
+       "answer": "8",
+       "skill": "science",
+       "match": "number",
+       "accept": [
+        "eight"
+       ]
+      },
+      {
+       "id": "sc2-8",
+       "prompt": "What does a caterpillar turn into?",
+       "answer": "butterfly",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "a butterfly",
+        "moth",
+        "a moth"
+       ]
+      }
+     ]
+    },
+    {
+     "level": 3,
+     "kind": "items",
+     "items": [
+      {
+       "id": "sc3-1",
+       "prompt": "Which planet is called the Red Planet?",
+       "answer": "mars",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc3-2",
+       "prompt": "What force pulls things down towards the ground?",
+       "answer": "gravity",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc3-3",
+       "prompt": "What do we call animals that eat only plants?",
+       "answer": "herbivores",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "herbivore",
+        "herbivorous"
+       ],
+       "hint": "They are not carnivores."
+      },
+      {
+       "id": "sc3-4",
+       "prompt": "Which part of a plant takes in water from the soil?",
+       "answer": "roots",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "root",
+        "the roots"
+       ]
+      },
+      {
+       "id": "sc3-5",
+       "prompt": "What process do plants use to make food from sunlight?",
+       "answer": "photosynthesis",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc3-6",
+       "prompt": "Which is the biggest planet in our solar system?",
+       "answer": "jupiter",
+       "skill": "science",
+       "match": "text"
+      },
+      {
+       "id": "sc3-7",
+       "prompt": "At what temperature in degrees Celsius does water boil?",
+       "answer": "100",
+       "skill": "science",
+       "match": "number",
+       "accept": [
+        "one hundred",
+        "a hundred"
+       ]
+      },
+      {
+       "id": "sc3-8",
+       "prompt": "What is the hardest natural material, diamond or gold?",
+       "answer": "diamond",
+       "skill": "science",
+       "match": "text",
+       "accept": [
+        "a diamond"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "countries": [
+  {
+   "name": "Nigeria",
+   "capital": "Abuja",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Ghana",
+   "capital": "Accra",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Kenya",
+   "capital": "Nairobi",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Egypt",
+   "capital": "Cairo",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "South Africa",
+   "capital": "Pretoria",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Senegal",
+   "capital": "Dakar",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Ethiopia",
+   "capital": "Addis Ababa",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Morocco",
+   "capital": "Rabat",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "France",
+   "capital": "Paris",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Japan",
+   "capital": "Tokyo",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Brazil",
+   "capital": "Brasília",
+   "continent": "South America",
+   "region": "world"
+  },
+  {
+   "name": "Canada",
+   "capital": "Ottawa",
+   "continent": "North America",
+   "region": "world"
+  },
+  {
+   "name": "Australia",
+   "capital": "Canberra",
+   "continent": "Oceania",
+   "region": "world"
+  },
+  {
+   "name": "India",
+   "capital": "New Delhi",
+   "continent": "Asia",
+   "region": "world",
+   "accept": [
+    "Delhi"
+   ]
+  },
+  {
+   "name": "Algeria",
+   "capital": "Algiers",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Tanzania",
+   "capital": "Dodoma",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Uganda",
+   "capital": "Kampala",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Rwanda",
+   "capital": "Kigali",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Zambia",
+   "capital": "Lusaka",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Zimbabwe",
+   "capital": "Harare",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Cameroon",
+   "capital": "Yaounde",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Mali",
+   "capital": "Bamako",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Tunisia",
+   "capital": "Tunis",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Angola",
+   "capital": "Luanda",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Sudan",
+   "capital": "Khartoum",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Namibia",
+   "capital": "Windhoek",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Botswana",
+   "capital": "Gaborone",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Mozambique",
+   "capital": "Maputo",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Liberia",
+   "capital": "Monrovia",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Sierra Leone",
+   "capital": "Freetown",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Madagascar",
+   "capital": "Antananarivo",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Somalia",
+   "capital": "Mogadishu",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Libya",
+   "capital": "Tripoli",
+   "continent": "Africa",
+   "region": "africa"
+  },
+  {
+   "name": "Germany",
+   "capital": "Berlin",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Italy",
+   "capital": "Rome",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Spain",
+   "capital": "Madrid",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Portugal",
+   "capital": "Lisbon",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "United Kingdom",
+   "capital": "London",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Ireland",
+   "capital": "Dublin",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Norway",
+   "capital": "Oslo",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Sweden",
+   "capital": "Stockholm",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Greece",
+   "capital": "Athens",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Netherlands",
+   "capital": "Amsterdam",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "Poland",
+   "capital": "Warsaw",
+   "continent": "Europe",
+   "region": "world"
+  },
+  {
+   "name": "China",
+   "capital": "Beijing",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "South Korea",
+   "capital": "Seoul",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Thailand",
+   "capital": "Bangkok",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Indonesia",
+   "capital": "Jakarta",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Vietnam",
+   "capital": "Hanoi",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Pakistan",
+   "capital": "Islamabad",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Saudi Arabia",
+   "capital": "Riyadh",
+   "continent": "Asia",
+   "region": "world"
+  },
+  {
+   "name": "Mexico",
+   "capital": "Mexico City",
+   "continent": "North America",
+   "region": "world"
+  },
+  {
+   "name": "Cuba",
+   "capital": "Havana",
+   "continent": "North America",
+   "region": "world"
+  },
+  {
+   "name": "Jamaica",
+   "capital": "Kingston",
+   "continent": "North America",
+   "region": "world"
+  },
+  {
+   "name": "Argentina",
+   "capital": "Buenos Aires",
+   "continent": "South America",
+   "region": "world"
+  },
+  {
+   "name": "Chile",
+   "capital": "Santiago",
+   "continent": "South America",
+   "region": "world"
+  },
+  {
+   "name": "Peru",
+   "capital": "Lima",
+   "continent": "South America",
+   "region": "world"
+  },
+  {
+   "name": "Colombia",
+   "capital": "Bogota",
+   "continent": "South America",
+   "region": "world"
+  },
+  {
+   "name": "New Zealand",
+   "capital": "Wellington",
+   "continent": "Oceania",
+   "region": "world"
+  },
+  {
+   "name": "United States",
+   "capital": "Washington",
+   "continent": "North America",
+   "region": "world",
+   "accept": [
+    "Washington DC",
+    "Washington D.C."
+   ]
+  }
+ ]
 }

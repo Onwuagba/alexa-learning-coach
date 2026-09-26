@@ -4,7 +4,9 @@
                                           updatedAt}}, available: [...], promoteAfter}
   POST /api/progress/{child}/events   body {"events": [{"id", "topic", "correct", "at"}, ...]}
                                        -> same as GET plus {applied, duplicates, rejected: [{id, reason}]}
-Auth: `Authorization: Bearer $TV_API_TOKEN`. If TV_API_TOKEN is unset the API answers 503 (disabled).
+Auth: `Authorization: Bearer <token>`. Each family has its own TV token (created at sign-up, rotatable);
+the env `TV_API_TOKEN` is a single-family fallback that maps to the `default` family. A token only ever sees
+its own family's children. If no env token is set and no family has a token, the API answers 503 (disabled).
 It cannot unlock topics (that needs the parent PIN via MCP/parent page); events for locked topics are
 rejected. Levels are decided by the coach, so a TV cannot claim a level. CORS origins: TV_CORS_ORIGINS
 (comma separated; default = local Expo web/preview ports).
@@ -24,7 +26,9 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from . import curriculum
-from .service import Coach, InvalidInput
+from .ops import METRICS
+from .store import DEFAULT_FAMILY
+from .service import Coach, InvalidInput, UnknownChild
 
 MAX_BODY = 64 * 1024
 MAX_EVENTS = 100
@@ -67,18 +71,27 @@ def make_tv_app(coach: Coach, token: str | None = None) -> Starlette:
     token = token if token is not None else os.getenv("TV_API_TOKEN")
 
     def guard(request: Request) -> JSONResponse | None:
-        if not token:
-            return _err(503, "TV API disabled: set TV_API_TOKEN.")
+        """Sets request.state.family or returns an error response."""
+        if not token and not coach.store.any_tv_tokens():
+            return _err(503, "TV API disabled: set TV_API_TOKEN or create a family.")
         got = request.headers.get("authorization", "")
-        if not hmac.compare_digest(got.encode(), f"Bearer {token}".encode()):
+        if token and hmac.compare_digest(got.encode(), f"Bearer {token}".encode()):
+            request.state.family = DEFAULT_FAMILY
+            return None
+        fam = coach.family_for_tv_token(got[7:]) if got.startswith("Bearer ") else None
+        if not fam:
+            METRICS.inc("tv_auth_failures_total")
             return _err(401, "unauthorized")
+        request.state.family = fam
         return None
 
     async def get_progress(request: Request):
         if (r := guard(request)):
             return r
         try:
-            return JSONResponse(coach.tv_progress(request.path_params["child"]))
+            return JSONResponse(coach.tv_progress(request.path_params["child"], request.state.family))
+        except UnknownChild:
+            return _err(404, "Unknown child for this family.")
         except InvalidInput as e:
             return _err(400, str(e))
 
@@ -92,7 +105,9 @@ def make_tv_app(coach: Coach, token: str | None = None) -> Starlette:
             return _err(413, "Body too large.")
         try:
             events = validate_events(json.loads(raw))
-            return JSONResponse(coach.tv_events(request.path_params["child"], events))
+            return JSONResponse(coach.tv_events(request.path_params["child"], events, request.state.family))
+        except UnknownChild:
+            return _err(404, "Unknown child for this family.")
         except (ValueError, InvalidInput) as e:  # json errors are ValueError too
             return _err(400, str(e) if isinstance(e, InvalidInput) else "Body must be valid JSON.")
 
