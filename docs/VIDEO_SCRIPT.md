@@ -19,8 +19,12 @@ seeded with `python scripts/seed_demo.py --db demo.db` (sign in with family code
 
 **2:10-2:30 Fire TV link.** Same child on the TV app (web target) shows the level just earned by voice; a TV answer shows up in the dashboard. Backward-compatible REST API with per-family tokens.
 
-**2:30-2:50 Under the hood (tech).** One diagram: Alexa+ -> MCP over streamable HTTP -> family from bearer token -> service -> SQLite/Postgres (tested on Postgres 16). Mention: shared curriculum JSON with 8 topics and 60 countries, forgiving speech matching, spaced repetition, migrations, rate limiting, metrics, ~180 tests. Say "hosted on AWS App Runner" only if actually deployed.
+**2:30-2:50 Under the hood (tech, the AWS stack).** One diagram: Alexa+ -> MCP over streamable HTTP -> family from bearer token -> service -> SQLite/Postgres (tested on Postgres 16). Then the AWS layer, say only what you actually ran:
+- "Amazon Bedrock, through the Converse API with a Guardrail, gives a second opinion when a child answers in words the rules do not match, adds a one-line explanation of why, and writes the parent's weekly paragraph. Numbers and spelling never go to a model, prompts carry no names, and every call has a timeout, a daily cap and a rule-based fallback." Show the report with "Written with Amazon Bedrock" and `/metrics` `bedrock_calls_total`. **[TODO-verify]** record this only after a real call worked; otherwise say it is implemented and tested against stubs.
+- "A Strands Agents tutor plans what to practise next from mastery data." Show the planner log/metric `tutor_plans_total` only if run for real.
+- "The MCP server is packaged for AgentCore Runtime (ARM64, stateless), and the primary deployment is App Runner with Secrets Manager and a least-privilege role from CloudFormation." Show `infra/aws-stack.yaml`. We chose not to use SageMaker or AgentCore Memory, because there is no genuine model or memory need: say that in one sentence, it is a strength.
+Mention: 8 topics and 60 countries, forgiving speech matching, spaced repetition, migrations, rate limiting, metrics, ~240 tests. Say "hosted on AWS App Runner" only if actually deployed.
 
 **2:50-3:00 Close + honesty.** "Voice-first practice that grows with the child and keeps parents in control. Privacy by design: nicknames only, export and delete in one click." Show repo + MIT license. Mention what is simulated.
 
-Recording checklist **[MANUAL]**: record voiceover; confirm length and rules on the hackathon page; capture the dashboard in both light and dark mode; make sure no real tokens are on screen (regenerate with Rotate tokens after filming).
+Recording checklist **[MANUAL]**: record voiceover; confirm length and rules on the hackathon page; capture the dashboard in both light and dark mode; make sure no real tokens, account ids or guardrail ids are on screen; keep Bedrock model-invocation logging off while filming (regenerate with Rotate tokens after filming).

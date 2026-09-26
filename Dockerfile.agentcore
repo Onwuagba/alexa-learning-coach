@@ -1,0 +1,14 @@
+# Bedrock AgentCore Runtime container for the MCP server (OPTIONAL, see docs/AWS_STACK.md).
+# Contract from the AgentCore docs: ARM64, listen on 0.0.0.0:8000, MCP at POST /mcp, stateless streamable HTTP.
+#   docker buildx build --platform linux/arm64 -f Dockerfile.agentcore -t <ecr-uri> --push .
+# NOT built or deployed in this repo's development (no Docker daemon / AWS account was used).
+FROM --platform=linux/arm64 python:3.11-slim
+ENV PYTHONUNBUFFERED=1 PORT=8000 MCP_STATELESS=1 MCP_ONLY=1 MCP_LINK_TOKEN_HEADER=x-lc-link-token REQUIRE_MCP_AUTH=1 PROGRESS_DB=/tmp/progress.db
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt "psycopg[binary]>=3.1" boto3
+COPY learning_coach ./learning_coach
+RUN useradd -m app
+USER app
+EXPOSE 8000
+CMD ["python", "-m", "learning_coach.server"]

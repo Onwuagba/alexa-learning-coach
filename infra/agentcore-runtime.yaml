@@ -1,0 +1,126 @@
+# OPTIONAL: host the Learning Coach MCP server on Amazon Bedrock AgentCore Runtime.
+#
+# Read docs/AWS_STACK.md first. AgentCore Runtime puts its own authentication in front of the container (IAM SigV4
+# or an OAuth/JWT authorizer), so Alexa+ (which sends a static bearer token, as far as we know) can NOT call it
+# directly. This template exists for agent-to-tool scenarios (Strands / AgentCore agents, AgentCore Gateway) and
+# for the hackathon write-up. The primary deployment stays App Runner (infra/aws-stack.yaml).
+#
+# Verified from the AgentCore docs: MCP container contract (0.0.0.0:8000/mcp, stateless streamable HTTP, ARM64),
+# resource type AWS::BedrockAgentCore::Runtime and its property names (cfn-lint clean), execution-role trust policy
+# and permission statements, request-header allowlist. NOT verified: any deployment (no AWS account was available).
+#
+# Prerequisite: an ARM64 image built from Dockerfile.agentcore and pushed to ECR:
+#   docker buildx build --platform linux/arm64 -f Dockerfile.agentcore -t <acct>.dkr.ecr.<region>.amazonaws.com/learning-coach-mcp:latest --push .
+# The container reads its secrets from Secrets Manager (AWS_SECRETS_ID); put DATABASE_URL, PARENT_PIN,
+# SESSION_SECRET (and MCP_AUTH_TOKEN) as keys of ONE JSON secret and pass its ARN as SecretsArn.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Learning Coach MCP server on Bedrock AgentCore Runtime (optional)
+
+Parameters:
+  ContainerUri:
+    Type: String
+    Description: "ECR URI of the ARM64 image, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/learning-coach-mcp:latest"
+  SecretsArn:
+    Type: String
+    Description: "Secrets Manager secret (JSON) with DATABASE_URL, PARENT_PIN, SESSION_SECRET. Full ARN."
+  JwtDiscoveryUrl:
+    Type: String
+    Default: ""
+    Description: "OIDC discovery URL (ends with /.well-known/openid-configuration) to require a JWT. Empty = IAM SigV4 (TODO-verify: default when no authorizer is set)."
+  JwtAllowedClient:
+    Type: String
+    Default: ""
+    Description: "Allowed client id for the JWT authorizer (used only with JwtDiscoveryUrl)."
+  BedrockFoundationModelId:
+    Type: String
+    Default: "amazon.nova-micro-v1:0"
+
+Conditions:
+  UseJwt: !Not [!Equals [!Ref JwtDiscoveryUrl, ""]]
+
+Resources:
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:   # from the AgentCore "Runtime trust policy" documentation
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AssumeRolePolicy
+            Effect: Allow
+            Principal: {Service: bedrock-agentcore.amazonaws.com}
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: {"aws:SourceAccount": !Ref "AWS::AccountId"}
+              ArnLike: {"aws:SourceArn": !Sub "arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:*"}
+      Policies:
+        - PolicyName: runtime-execution   # trimmed from the documented execution role: no workload-identity, no wildcard models
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PullImage
+                Effect: Allow
+                Action: [ecr:BatchGetImage, ecr:GetDownloadUrlForLayer]
+                Resource: !Sub "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/*"
+              - Sid: EcrToken
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action: [logs:DescribeLogStreams, logs:CreateLogGroup]
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*"
+              - Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*"
+              - Effect: Allow
+                Action: [xray:PutTraceSegments, xray:PutTelemetryRecords, xray:GetSamplingRules, xray:GetSamplingTargets]
+                Resource: "*"
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals: {"cloudwatch:namespace": [bedrock-agentcore, LearningCoach]}
+              - Sid: AppSecrets
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SecretsArn
+              - Sid: OneBedrockModel
+                Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource: !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
+
+  Runtime:
+    Type: AWS::BedrockAgentCore::Runtime
+    Properties:
+      AgentRuntimeName: learning_coach_mcp
+      Description: Learning Coach MCP tools (stateless streamable HTTP)
+      RoleArn: !GetAtt ExecutionRole.Arn
+      ProtocolConfiguration: MCP
+      NetworkConfiguration: {NetworkMode: PUBLIC}
+      AgentRuntimeArtifact:
+        ContainerConfiguration: {ContainerUri: !Ref ContainerUri}
+      # The platform authenticates the caller; the family is identified by OUR token in an allow-listed header.
+      RequestHeaderConfiguration:
+        RequestHeaderAllowlist: [X-Lc-Link-Token]
+      AuthorizerConfiguration: !If
+        - UseJwt
+        - CustomJWTAuthorizer:
+            DiscoveryUrl: !Ref JwtDiscoveryUrl
+            AllowedClients: [!Ref JwtAllowedClient]
+        - !Ref "AWS::NoValue"
+      EnvironmentVariables:
+        MCP_STATELESS: "1"
+        MCP_ONLY: "1"
+        MCP_LINK_TOKEN_HEADER: x-lc-link-token
+        REQUIRE_MCP_AUTH: "1"
+        AWS_SECRETS_ID: !Ref SecretsArn
+        EMF_NAMESPACE: LearningCoach
+
+Outputs:
+  RuntimeArn:
+    Value: !GetAtt Runtime.AgentRuntimeArn
+  InvocationUrl:
+    Description: URL-encode the runtime ARN before use (':' -> %3A, '/' -> %2F), see the AgentCore MCP docs.
+    Value: !Sub "https://bedrock-agentcore.${AWS::Region}.amazonaws.com/runtimes/<URL-ENCODED-ARN>/invocations?qualifier=DEFAULT"

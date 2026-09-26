@@ -25,3 +25,12 @@
 4. Alexa-side data flow: what Alexa+ sends to an MCP server (utterance text? account/profile ids?) is unverified.
 5. Email: reports go to the parent address only; confirm the address (double opt-in) before enabling `REPORT_MODE=smtp`.
 6. Access logging for staff, encryption at rest (database/host setting), and a DPIA if operating in the EU/UK.
+
+## Optional Amazon Bedrock / Strands processing (off by default)
+When `BEDROCK_ENABLED=1` the server sends short prompts to Amazon Bedrock in your AWS account/Region: curriculum question text,
+the expected answer, and (only for the free-text "second opinion") the child's spoken answer, cleaned of emails, phone numbers and
+URLs and cut to 100 characters. Weekly report narratives use aggregate numbers only. Child names, family ids and tokens are never
+included. A guardrail with PII masking is recommended (created by `infra/aws-stack.yaml`). Do **not** enable Bedrock model
+invocation logging (it would store prompts). The Strands planner sends topic ids, levels and 0/1 results only. Switch the answer
+check off with `BEDROCK_FEATURES=feedback,report`. Disclose the processing in your own privacy notice; this is not legal advice.
+See [AWS_STACK.md](AWS_STACK.md).

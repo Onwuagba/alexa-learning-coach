@@ -1,3 +1,5 @@
 pytest
 httpx
+boto3
+pyyaml
 -r requirements.txt

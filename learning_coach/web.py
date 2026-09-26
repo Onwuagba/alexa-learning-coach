@@ -22,6 +22,7 @@ from starlette.responses import HTMLResponse, PlainTextResponse, RedirectRespons
 from starlette.routing import Route
 
 from . import curriculum, learning, reports
+from .ops import get_secret
 from .service import Coach, InvalidInput
 from .store import DEFAULT_FAMILY
 
@@ -120,7 +121,7 @@ def goal_ring(goal: dict) -> str:
 
 
 def make_app(coach: Coach, secret: str | None = None) -> Starlette:
-    key = (secret or os.getenv("SESSION_SECRET") or secrets.token_hex(32)).encode()
+    key = (secret or get_secret("SESSION_SECRET") or secrets.token_hex(32)).encode()
     secure = os.getenv("COOKIE_SECURE") == "1"
     allow_signup = os.getenv("ALLOW_SIGNUP", "1") == "1"
 

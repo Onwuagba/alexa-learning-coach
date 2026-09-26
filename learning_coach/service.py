@@ -16,7 +16,7 @@ import sys
 import time
 import uuid
 
-from . import curriculum, learning, voice
+from . import bedrock, curriculum, learning, tutor, voice
 from .ops import METRICS
 from .store import DEFAULT_FAMILY, PROMOTE_AFTER, Store
 
@@ -278,6 +278,7 @@ class Coach:
             return ask
         now = time.time()
         self._session(family, who, now)
+        tutor.refresh_async(self, family, who)  # no-op unless TUTOR_MODE=strands; runs in the background
         st = self.child_stats(family, who, now)
         topics = [{"topic": t, "title": curriculum.TOPICS[t]["title"], "level": self.store.row(who, t, family)["level"]}
                   for t in self.available(who, family)]
@@ -307,6 +308,9 @@ class Coach:
         for d in due:
             if d["topic"] in av:
                 return d["topic"]
+        planned = tutor.planned_topic(family, who, av, now)  # optional Strands tutor plan (cached, validated)
+        if planned:
+            return planned
         stale = sorted(av, key=lambda t: self.store.row(who, t, family)["updated_ms"])
         return stale[0]
 
@@ -406,6 +410,8 @@ class Coach:
         q = curriculum.Question.from_row(p)
         verdict = q.verdict(answer)
         intent = None if verdict == voice.CORRECT else voice.detect_intent(answer)
+        if intent is None and verdict != voice.CORRECT:
+            verdict = self._second_opinion(family, q, answer, verdict)
         if intent == "repeat":
             return self.repeat_question(who, family)
         if intent == "hint":
@@ -421,6 +427,20 @@ class Coach:
         revealed = intent == "skip"
         ok = verdict == voice.CORRECT
         return self._apply(family, who, q, ok, p["hints_used"] > 0, revealed, self.rng)
+
+    def _second_opinion(self, family: str, q: curriculum.Question, answer: str, verdict: str) -> str:
+        """Optional Amazon Bedrock second opinion on a FREE-TEXT answer the rules did not accept. It can only turn
+        wrong/unclear into correct; numbers, fractions, spelled letters and the spelling topic never go to a model,
+        so arithmetic and spelling stay deterministic. Any failure returns the rule-based verdict unchanged."""
+        ai = bedrock.get_ai()
+        if not ai.active("judge") or q.match not in ("auto", "text") or q.topic == "spelling":
+            return verdict
+        if voice._is_number(q.answer) or re.fullmatch(r"\d+/\d+", q.answer) or len(answer.split()) > 8:
+            return verdict
+        if bedrock.judge_answer(ai, family, q.prompt, q.answer, answer) == "correct":
+            METRICS.inc("ai_judge_upgrades_total", topic=q.topic)
+            return voice.CORRECT
+        return verdict
 
     def _apply(self, family, who, q, ok, hinted, revealed, rng) -> dict:
         now = time.time()
@@ -452,6 +472,10 @@ class Coach:
         else:
             parts.append("That's okay." if revealed else voice.pick(voice.GENTLE, rng))
             parts.append(voice.pick(voice.REVEAL, rng, a=_speak_answer(q.answer)))
+        extra = bedrock.feedback_line(bedrock.get_ai(), family, curriculum.TOPICS[q.topic]["title"], q.skill,
+                                      before, curriculum.max_level(q.topic), q.prompt, q.answer, ok)
+        if extra:  # optional Bedrock sentence; validated; the rule-based lines above are always present
+            parts.append(extra)
         if up:
             parts.append(voice.pick(voice.LEVEL_UP, rng, n=new_level))
         elif down:

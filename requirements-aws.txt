@@ -1,0 +1,5 @@
+# Optional AWS AI stack (all features are OFF unless enabled by env, see docs/AWS_STACK.md).
+# Install on top of requirements.txt. Keep mcp<2 (requirements.txt): strands-agents 1.57.1 was verified with mcp 1.30.0.
+-r requirements.txt
+boto3>=1.35          # Bedrock Converse, Secrets Manager
+strands-agents>=1.57,<2   # only needed for TUTOR_MODE=strands

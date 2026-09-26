@@ -10,6 +10,8 @@ Env: PORT, DATABASE_URL (or PROGRESS_DB), PARENT_PIN (default family, 4-8 digits
 fallback bearer for /mcp; maps to the `default` family), TV_API_TOKEN (same for /api), REQUIRE_MCP_AUTH=1,
 TV_CORS_ORIGINS, SESSION_SECRET, COOKIE_SECURE=1, ALLOW_SIGNUP=0/1, RATE_LIMIT_PER_MIN, AUTH_RATE_LIMIT_PER_MIN,
 TRUST_PROXY=1, METRICS_TOKEN, LOG_LEVEL, AWS_SECRETS_ID (optional Secrets Manager adapter, unverified).
+AWS extras (all optional, see docs/AWS_STACK.md): BEDROCK_* (Converse features), TUTOR_MODE=strands, EMF_NAMESPACE
+(CloudWatch metrics), MCP_STATELESS=1, MCP_ONLY=1, MCP_LINK_TOKEN_HEADER (AgentCore Runtime).
 
 Tenancy on /mcp: the bearer token identifies the family; the tools never take a family argument, so one family
 cannot address another's children.
@@ -29,13 +31,21 @@ from .store import DEFAULT_FAMILY, make_store
 from .tvapi import make_tv_app
 from .web import make_app
 
-mcp = FastMCP("learning-coach", host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
-store = make_store(os.getenv("DATABASE_URL") or os.getenv("PROGRESS_DB", "progress.db"))
+# MCP_STATELESS=1: stateless streamable HTTP, what Amazon Bedrock AgentCore Runtime recommends for MCP servers.
+mcp = FastMCP("learning-coach", host="0.0.0.0", port=int(os.getenv("PORT", "8000")),
+              stateless_http=os.getenv("MCP_STATELESS") == "1")
+store = make_store(get_secret("DATABASE_URL") or os.getenv("PROGRESS_DB", "progress.db"))
 coach = Coach(store, get_secret("PARENT_PIN"))
 MCP_ENV_TOKEN = get_secret("MCP_AUTH_TOKEN")
 
 
 def _bearer(headers) -> str:
+    """The family/link token. Default: `Authorization: Bearer <token>`. MCP_LINK_TOKEN_HEADER=x-lc-link-token reads
+    the raw token from that header instead: behind AgentCore Runtime with a JWT authorizer, `Authorization` carries
+    the OAuth JWT, so the family token must travel in an allow-listed custom header (see docs/AWS_STACK.md)."""
+    alt = os.getenv("MCP_LINK_TOKEN_HEADER", "").strip().lower()
+    if alt:
+        return headers.get(alt, "").strip()
     v = headers.get("authorization", "")
     return v[7:].strip() if v.lower().startswith("bearer ") else ""
 
@@ -163,8 +173,9 @@ def build_app():
     app = mcp.streamable_http_app()  # Starlette; keeps the MCP session-manager lifespan
     app.router.routes.append(Route("/healthz", _healthz))
     app.router.routes.append(Route("/metrics", _metrics))
-    app.router.routes.append(Mount("/parent", make_app(coach)))
-    app.router.routes.append(Mount("/api", make_tv_app(coach, get_secret("TV_API_TOKEN"))))
+    if os.getenv("MCP_ONLY") != "1":  # MCP_ONLY=1: AgentCore Runtime container, /mcp (+ /healthz) only
+        app.router.routes.append(Mount("/parent", make_app(coach)))
+        app.router.routes.append(Mount("/api", make_tv_app(coach, get_secret("TV_API_TOKEN"))))
     log_event("server_built", schema_version=store.schema_version())
     return OpsMiddleware(BearerAuth(app))
 

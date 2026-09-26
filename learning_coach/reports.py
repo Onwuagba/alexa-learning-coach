@@ -16,7 +16,7 @@ import smtplib
 import time
 from email.message import EmailMessage
 
-from . import curriculum, learning
+from . import bedrock, curriculum, learning
 from .ops import get_secret, log_event
 from .service import Coach
 
@@ -60,6 +60,9 @@ def family_report(coach: Coach, family: str, child: str | None = None, now: floa
     fam = coach.family_info(family)
     kids = [c for c in coach.children(family) if not child or c == child.lower()]
     reports = [child_report(coach, family, c, now) for c in kids]
+    ai = bedrock.get_ai()
+    for r in reports:  # aggregate numbers only go to the model; falls back to a rule-based paragraph
+        r["narrative"], r["narrative_source"] = bedrock.report_narrative(ai, family, r)
     subject = f"{fam['name']} weekly learning report"
     return {"family": fam, "children": reports, "generated": now, "subject": subject,
             "text": render_text(fam, reports, now), "html": render_html(fam, reports, now)}
@@ -73,8 +76,10 @@ def render_text(fam: dict, reports: list[dict], now: float) -> str:
     out = [f"{fam['name']}: weekly learning report ({_date(now)})", "=" * 44, ""]
     for r in reports:
         w = r["week"]
-        out += [f"{r['name']}", "-" * len(r["name"]),
-                f"Questions this week: {w['answered']}" + (f" ({d})" if (d := _delta(w['answered'], r['prev_week']['answered'])) else ""),
+        out += [f"{r['name']}", "-" * len(r["name"])]
+        if r.get("narrative"):
+            out += [r["narrative"] + (" (Written with Amazon Bedrock.)" if r.get("narrative_source") == "bedrock" else ""), ""]
+        out += [f"Questions this week: {w['answered']}" + (f" ({d})" if (d := _delta(w['answered'], r['prev_week']['answered'])) else ""),
                 f"Accuracy: {w['accuracy_pct']}%   Active days: {w['active_days']}/7   Time: about {w['minutes']} min",
                 f"Practice streak: {r['streak']} day(s)"]
         if r["goal"]["weekly"]:
@@ -120,9 +125,13 @@ def render_html(fam: dict, reports: list[dict], now: float) -> str:
         tips = "".join(f'<li style="margin:4px 0">{E(t)}</li>' for t in r["tips"])
         goal = (f'<p style="margin:10px 0 4px;font-size:13px">Weekly goal: {r["goal"]["done"]} of {r["goal"]["weekly"]} questions</p>{_bar(r["goal"]["pct"], "#d98324")}'
                 if r["goal"]["weekly"] else "")
+        story = (f'<p style="margin:0 0 10px;font-size:14px;color:#334;line-height:1.5">{E(r["narrative"])}'
+                 + ('<br><span style="font-size:11px;color:#889">Written with Amazon Bedrock</span>' if r.get("narrative_source") == "bedrock" else "")
+                 + "</p>") if r.get("narrative") else ""
         cards += f"""
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fff;border:1px solid #dfe5e1;border-radius:12px;margin:14px 0"><tr><td style="padding:18px">
 <h2 style="margin:0 0 8px;font:600 20px Georgia,serif;color:#1d3a2f">{E(r['name'])}</h2>
+{story}
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
  <td align="center" style="padding:6px"><div style="font-size:26px;font-weight:700;color:#1d3a2f">{w['answered']}</div><div style="font-size:12px;color:#667">questions<br>{E(_delta(w['answered'], r['prev_week']['answered']))}</div></td>
  <td align="center" style="padding:6px"><div style="font-size:26px;font-weight:700;color:#1d3a2f">{w['accuracy_pct']}%</div><div style="font-size:12px;color:#667">correct</div></td>
@@ -180,7 +189,7 @@ def main(argv=None) -> int:
     p.add_argument("--send", action="store_true")
     p.add_argument("--html", action="store_true", help="print HTML instead of text")
     a = p.parse_args(argv)
-    store = make_store(os.getenv("DATABASE_URL") or os.getenv("PROGRESS_DB", "progress.db"))
+    store = make_store(get_secret("DATABASE_URL") or os.getenv("PROGRESS_DB", "progress.db"))
     coach = Coach(store, os.getenv("PARENT_PIN"))
     fam = store.family_by("slug", a.family)
     if not fam:

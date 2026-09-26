@@ -1,0 +1,264 @@
+# Learning Coach on AWS: App Runner (from ECR) + Secrets Manager + Bedrock guardrail + least-privilege instance role
+# + CloudWatch alarms. Replaces the plain infra/apprunner.yaml (kept for reference).
+#
+# STATUS: property names were checked against the CloudFormation Template Reference pages for
+# AWS::AppRunner::Service, AWS::Bedrock::Guardrail and AWS::SecretsManager/CloudWatch (see docs/AWS_STACK.md) and the
+# template passes `cfn-lint` 1.57.0 (offline schema check, no errors). It was NEVER deployed (no AWS account
+# was available). Items marked TODO-verify are from memory or unverifiable offline.
+#
+# Deploy (after pushing the image to ECR, see docs/DEPLOY.md):
+#   aws cloudformation deploy --stack-name learning-coach --template-file infra/aws-stack.yaml \
+#     --capabilities CAPABILITY_IAM \
+#     --parameter-overrides ImageUri=<acct>.dkr.ecr.<region>.amazonaws.com/learning-coach:latest \
+#       DatabaseUrl='postgresql://...sslmode=require' ParentPin=1234 BedrockEnabled=true
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Learning Coach (Alexa+ MCP server, parent dashboard, TV API) on AWS App Runner with optional Amazon Bedrock features
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: "ECR image, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/learning-coach:latest"
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+    Description: "Postgres URL (App Runner has no persistent disk, so SQLite would be lost on every restart). Stored in Secrets Manager."
+  ParentPin:
+    Type: String
+    NoEcho: true
+    AllowedPattern: '^\d{4,8}$'
+    Description: "PIN of the default family (4-8 digits). Stored in Secrets Manager."
+  BedrockEnabled:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: "Turn on the optional Amazon Bedrock features (answer second opinion, varied feedback, report narrative)."
+  BedrockModelId:
+    Type: String
+    Default: "amazon.nova-micro-v1:0"
+    Description: "Model id (or inference profile id such as us.amazon.nova-micro-v1:0) that the app passes to Converse."
+  BedrockFoundationModelId:
+    Type: String
+    Default: "amazon.nova-micro-v1:0"
+    Description: "Foundation model id used to scope IAM. Equal to BedrockModelId unless you use an inference profile."
+  CreateGuardrail:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: "Create a Bedrock guardrail (child-safety content filters + PII masking) and wire it into the app."
+  BedrockDailyCallsGlobal:
+    Type: Number
+    Default: 5000
+    Description: "Hard cap on Bedrock calls per UTC day per instance (cost guard)."
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: "Optional SNS topic ARN notified by the alarms."
+  BedrockCallsAlarmPerHour:
+    Type: Number
+    Default: 1500
+    Description: "Alarm when the Bedrock call count in one hour exceeds this."
+
+Conditions:
+  MakeGuardrail: !And [!Equals [!Ref BedrockEnabled, "true"], !Equals [!Ref CreateGuardrail, "true"]]
+  HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+
+Resources:
+  # ---- secrets (values never appear in the App Runner service configuration, only the ARNs) ----
+  AppSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Learning Coach app secrets (JSON). Read by learning_coach/ops.py get_secret via AWS_SECRETS_ID.
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"PARENT_PIN": "${ParentPin}"}'
+        GenerateStringKey: MCP_AUTH_TOKEN
+        PasswordLength: 48
+        ExcludePunctuation: true
+  DatabaseUrlSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Learning Coach database URL
+      SecretString: !Ref DatabaseUrl
+  SessionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Learning Coach dashboard cookie signing key
+      GenerateSecretString:
+        PasswordLength: 64
+        ExcludePunctuation: true
+
+  # ---- Bedrock guardrail (optional) ----
+  Guardrail:
+    Type: AWS::Bedrock::Guardrail
+    Condition: MakeGuardrail
+    Properties:
+      Name: learning-coach-child-safety
+      Description: "Child-directed tutoring, harmful content filters and PII masking"
+      BlockedInputMessaging: "Let's get back to your practice."
+      BlockedOutputsMessaging: "Let's get back to your practice."
+      ContentPolicyConfig:
+        FiltersConfig:
+          - {Type: HATE, InputStrength: HIGH, OutputStrength: HIGH}
+          - {Type: INSULTS, InputStrength: HIGH, OutputStrength: HIGH}
+          - {Type: SEXUAL, InputStrength: HIGH, OutputStrength: HIGH}
+          - {Type: VIOLENCE, InputStrength: HIGH, OutputStrength: HIGH}
+          - {Type: MISCONDUCT, InputStrength: HIGH, OutputStrength: HIGH}
+          # TODO-verify: PROMPT_ATTACK is expected to require OutputStrength NONE.
+          - {Type: PROMPT_ATTACK, InputStrength: HIGH, OutputStrength: NONE}
+      SensitiveInformationPolicyConfig:
+        PiiEntitiesConfig:
+          - {Type: NAME, Action: ANONYMIZE}
+          - {Type: EMAIL, Action: ANONYMIZE}
+          - {Type: PHONE, Action: ANONYMIZE}
+          - {Type: ADDRESS, Action: ANONYMIZE}
+
+  # ---- IAM: what the running container may do (nothing else) ----
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # TODO-verify: service principal for the App Runner instance role.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: tasks.apprunner.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: read-app-secrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref AppSecret
+                  - !Ref DatabaseUrlSecret
+                  - !Ref SessionSecret
+        - PolicyName: invoke-one-bedrock-model
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Converse is authorised by bedrock:InvokeModel (TODO-verify). The foundation-model ARN has an empty
+              # account field; the wildcard Region is needed when a geo inference profile routes to other Regions.
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
+                  - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockModelId}"
+  GuardrailPolicy:
+    Type: AWS::IAM::Policy
+    Condition: MakeGuardrail
+    Properties:
+      PolicyName: apply-the-guardrail
+      Roles: [!Ref InstanceRole]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: bedrock:ApplyGuardrail
+            Resource: !GetAtt Guardrail.GuardrailArn
+
+  # ---- the service ----
+  Service:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: learning-coach
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt EcrAccessRole.Arn
+        AutoDeploymentsEnabled: false
+        ImageRepository:
+          ImageIdentifier: !Ref ImageUri
+          ImageRepositoryType: ECR
+          ImageConfiguration:
+            Port: "8000"
+            RuntimeEnvironmentVariables:
+              - {Name: AWS_SECRETS_ID, Value: !Ref AppSecret}
+              - {Name: COOKIE_SECURE, Value: "1"}
+              - {Name: REQUIRE_MCP_AUTH, Value: "1"}
+              - {Name: TRUST_PROXY, Value: "1"}            # TODO-verify: App Runner forwards the client IP in X-Forwarded-For
+              - {Name: EMF_NAMESPACE, Value: LearningCoach}
+              - {Name: BEDROCK_ENABLED, Value: !Ref BedrockEnabled}
+              - {Name: BEDROCK_MODEL_ID, Value: !Ref BedrockModelId}
+              - {Name: BEDROCK_REGION, Value: !Ref "AWS::Region"}
+              - {Name: BEDROCK_DAILY_CALLS_GLOBAL, Value: !Ref BedrockDailyCallsGlobal}
+              - Name: BEDROCK_GUARDRAIL_ID
+                Value: !If [MakeGuardrail, !GetAtt Guardrail.GuardrailId, ""]
+              - Name: BEDROCK_GUARDRAIL_VERSION
+                Value: !If [MakeGuardrail, !GetAtt Guardrail.Version, "DRAFT"]   # always DRAFT from CloudFormation; publish a numbered version for production
+            # Values are Secrets Manager secret ARNs; App Runner injects them as environment variables.
+            RuntimeEnvironmentSecrets:
+              - {Name: DATABASE_URL, Value: !Ref DatabaseUrlSecret}
+              - {Name: SESSION_SECRET, Value: !Ref SessionSecret}
+      InstanceConfiguration:
+        Cpu: "0.25 vCPU"
+        Memory: "0.5 GB"
+        InstanceRoleArn: !GetAtt InstanceRole.Arn
+      HealthCheckConfiguration: {Protocol: HTTP, Path: /healthz}
+
+  EcrAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # TODO-verify: principal build.apprunner.amazonaws.com and the managed policy name.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: build.apprunner.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+
+  # ---- CloudWatch alarms on the EMF metrics the app emits (namespace LearningCoach) ----
+  BedrockCallsHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Bedrock call volume is above the hourly budget (cost guard)
+      Namespace: LearningCoach
+      MetricName: BedrockCalls
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: !Ref BedrockCallsAlarmPerHour
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+  BedrockErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Bedrock calls are failing (throttling, access, timeouts). The coach keeps working on rules.
+      Namespace: LearningCoach
+      MetricName: BedrockCalls
+      Dimensions: [{Name: Outcome, Value: error}]
+      Statistic: Sum
+      Period: 900
+      EvaluationPeriods: 1
+      Threshold: 20
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+  BedrockGuardrailBlocks:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: The guardrail is intervening often. Review prompts and the guardrail configuration.
+      Namespace: LearningCoach
+      MetricName: BedrockCalls
+      Dimensions: [{Name: Outcome, Value: guardrail}]
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 25
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+
+Outputs:
+  ServiceUrl:
+    Value: !Sub "https://${Service.ServiceUrl}"
+  McpUrl:
+    Value: !Sub "https://${Service.ServiceUrl}/mcp/"
+  GuardrailId:
+    Condition: MakeGuardrail
+    Value: !GetAtt Guardrail.GuardrailId
+  AppSecretArn:
+    Description: Contains PARENT_PIN and a generated MCP_AUTH_TOKEN (single-family fallback token).
+    Value: !Ref AppSecret

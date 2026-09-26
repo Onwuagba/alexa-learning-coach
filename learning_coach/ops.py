@@ -71,6 +71,28 @@ class Metrics:
 METRICS = Metrics()
 
 
+def emit_emf(metrics: dict[str, tuple[float, str]], dimensions: dict[str, str] | None = None,
+             namespace: str | None = None, **props) -> bool:
+    """Write one CloudWatch Embedded Metric Format log line (JSON on stderr), so CloudWatch Logs extracts metrics
+    with no extra API calls or IAM permissions. Enabled only when EMF_NAMESPACE (or `namespace`) is set.
+
+    Structure follows the EMF specification (_aws.Timestamp in ms, _aws.CloudWatchMetrics[Namespace, Dimensions,
+    Metrics[Name, Unit]], target members at the root). Each metric also gets an un-dimensioned series (for account-wide alarms). Dimensions must be LOW
+    cardinality (each combination is a billed custom metric): never child names or family ids. `props` are extra searchable fields, not metrics.
+    Source: docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html
+    NOT verified against a live CloudWatch (TODO-verify that the metrics appear in the console)."""
+    ns = namespace or os.getenv("EMF_NAMESPACE")
+    if not ns or not metrics:
+        return False
+    dims = {k: str(v) for k, v in (dimensions or {}).items()}
+    doc = {"_aws": {"Timestamp": int(time.time() * 1000),
+                    "CloudWatchMetrics": [{"Namespace": ns, "Dimensions": [sorted(dims), []] if dims else [[]],
+                                           "Metrics": [{"Name": n, "Unit": u} for n, (_, u) in metrics.items()]}]},
+           **dims, **{n: v for n, (v, _) in metrics.items()}, **props}
+    get_logger().info("emf", extra={"fields": doc})
+    return True
+
+
 # -- rate limiting ------------------------------------------------------------------------------------
 class RateLimiter:
     """In-memory token bucket per key. Per-process: behind several instances the effective limit is
@@ -168,8 +190,9 @@ class OpsMiddleware:
 def get_secret(name: str, default: str | None = None) -> str | None:
     """Environment first. If AWS_SECRETS_ID is set, fall back to that Secrets Manager JSON secret's `name` key.
 
-    UNVERIFIED: the boto3 call below follows the public boto3 API from memory and was never run against AWS
-    (TODO-verify with a real secret and IAM role `secretsmanager:GetSecretValue`)."""
+    The request shape (`get_secret_value(SecretId=...)`, JSON `SecretString`) is checked offline against the real
+    service model with botocore's Stubber (tests/test_aws_stack.py). It was never run against live AWS
+    (TODO-verify with a real secret; the role needs `secretsmanager:GetSecretValue` on that secret)."""
     v = os.getenv(name)
     if v:
         return v
