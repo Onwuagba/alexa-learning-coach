@@ -3,9 +3,11 @@
 Run:  python -m learning_coach.server
   MCP           http://localhost:8000/mcp
   Parent page   http://localhost:8000/parent/
+  TV REST API   http://localhost:8000/api/progress/{child}   (needs TV_API_TOKEN)
   Health        http://localhost:8000/healthz
 Env: PORT, DATABASE_URL (or PROGRESS_DB), PARENT_PIN (4-8 digits), MCP_AUTH_TOKEN (optional
-bearer token required on /mcp), SESSION_SECRET, COOKIE_SECURE=1.
+bearer token required on /mcp), TV_API_TOKEN (enables the TV REST API
+under /api; unset = 503), TV_CORS_ORIGINS, SESSION_SECRET, COOKIE_SECURE=1.
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ from starlette.routing import Mount, Route
 
 from .service import Coach, InvalidInput
 from .store import make_store
+from .tvapi import make_tv_app
 from .web import make_app
 
 mcp = FastMCP("learning-coach", host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
@@ -80,6 +83,7 @@ def build_app():
     app = mcp.streamable_http_app()  # Starlette; keeps the MCP session-manager lifespan
     app.router.routes.append(Route("/healthz", lambda r: PlainTextResponse("ok")))
     app.router.routes.append(Mount("/parent", make_app(coach)))
+    app.router.routes.append(Mount("/api", make_tv_app(coach)))  # TV REST API, own token (TV_API_TOKEN)
     token = os.getenv("MCP_AUTH_TOKEN")
     return BearerAuth(app, token) if token else app
 

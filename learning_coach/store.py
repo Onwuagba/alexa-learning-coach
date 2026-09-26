@@ -22,6 +22,8 @@ SCHEMA = [
     """create table if not exists pending (
       child text primary key, topic text, level integer, prompt text, answer text,
       created double precision)""",
+    """create table if not exists tv_events (
+      child text not null, event_id text not null, primary key (child, event_id))""",
     "create table if not exists settings (k text primary key, v text not null)",
 ]
 
@@ -46,6 +48,10 @@ class Store:
             self.db.row_factory = sqlite3.Row
         for stmt in SCHEMA:
             self._x(stmt)
+        try:  # migration for databases created before updated_ms existed
+            self._x("alter table progress add column updated_ms double precision not null default 0")
+        except Exception:
+            pass
 
     # -- plumbing ---------------------------------------------------------
     def _x(self, sql: str, args: tuple = ()) -> list[dict]:
@@ -98,9 +104,17 @@ class Store:
                 level, streak = level + 1, 0
             elif streak <= DEMOTE_AFTER and level > 1:
                 level, streak = level - 1, 0
-            self._x("update progress set level=?, streak=?, correct=correct+?, attempts=attempts+1 "
-                    "where child=? and topic=?", (level, streak, int(correct), child, topic))
+            self._x("update progress set level=?, streak=?, correct=correct+?, attempts=attempts+1, updated_ms=? "
+                    "where child=? and topic=?", (level, streak, int(correct), time.time() * 1000, child, topic))
             return level
+
+    def claim_event(self, child: str, event_id: str) -> bool:
+        """Remember a TV event id; False if it was already seen (idempotent retries)."""
+        with self.lock:
+            if self._x("select 1 from tv_events where child=? and event_id=?", (child, event_id)):
+                return False
+            self._x("insert into tv_events(child, event_id) values (?, ?)", (child, event_id))
+            return True
 
     def progress(self, child: str) -> list[dict]:
         return self._x("select * from progress where child=? order by topic", (child,))

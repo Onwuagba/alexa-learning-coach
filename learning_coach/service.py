@@ -11,7 +11,7 @@ import sys
 import time
 
 from . import curriculum
-from .store import Store
+from .store import PROMOTE_AFTER, Store
 
 DEFAULT_TOPICS = ["abacus"]  # always available; others need a parent unlock
 MAX_FAILS = 5
@@ -135,3 +135,31 @@ class Coach:
     def overview(self) -> list[dict]:
         return [{"child": c, "available": self.available(c), "progress": self.store.progress(c)}
                 for c in self.store.children()]
+
+    # -- TV client (REST API; see tvapi.py) ------------------------------------
+    def tv_progress(self, child: str) -> dict:
+        """Progress in the TV's shape. Read-only; never changes what is unlocked."""
+        child = clean_child(child)
+        out = {}
+        for r in self.store.progress(child):
+            if r["topic"] in self.available(child):
+                out[r["topic"]] = {"level": r["level"], "correct": r["correct"], "attempts": r["attempts"],
+                                   "streak": max(r["streak"], 0), "updatedAt": int(r.get("updated_ms") or 0)}
+        return {"child": child, "progress": out, "available": self.available(child),
+                "promoteAfter": PROMOTE_AFTER}
+
+    def tv_events(self, child: str, events: list[dict]) -> dict:
+        """Apply validated TV events (oldest first). The coach's own level rules decide levels; the TV's
+        claimed level is ignored. Events for locked topics are rejected, never unlocking anything."""
+        child = clean_child(child)
+        applied, duplicates, rejected = 0, 0, []
+        with self.store.lock:
+            for e in sorted(events, key=lambda e: e["at"]):
+                if e["topic"] not in self.available(child):
+                    rejected.append({"id": e["id"], "reason": "locked"})
+                elif not self.store.claim_event(child, e["id"]):
+                    duplicates += 1
+                else:
+                    self.store.record(child, e["topic"], e["correct"], curriculum.max_level(e["topic"]))
+                    applied += 1
+        return {**self.tv_progress(child), "applied": applied, "duplicates": duplicates, "rejected": rejected}
