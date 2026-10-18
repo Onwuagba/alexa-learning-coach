@@ -23,6 +23,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 PARENT_PIN=1234 .venv/bin/python -m learning_coach.server
 #  MCP          http://localhost:8000/mcp/
 #  Parent page  http://localhost:8000/parent/   (sign up a family, or sign in with a blank family code + PIN 1234)
+#  Alexa+ simulator http://localhost:8000/alexa/  (a child-facing Alexa+ screen; every turn is a real MCP call to /mcp)
 #  Health       http://localhost:8000/healthz     Metrics http://localhost:8000/metrics
 .venv/bin/python -m pytest -q                       # ~240 tests; 2 Postgres tests and 1 Strands test skip unless enabled (below)
 .venv/bin/python scripts/demo.py                    # offline scripted demo (shows every feature)

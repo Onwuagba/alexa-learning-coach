@@ -6,3 +6,5 @@ __pycache__/
 db.sqlite3
 .pytest_cache/
 .venv/
+
+SUBMISSION.private.md

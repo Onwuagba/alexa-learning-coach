@@ -27,6 +27,7 @@ from starlette.routing import Mount, Route
 
 from .ops import METRICS, OpsMiddleware, get_secret, log_event
 from .service import Coach, InvalidInput
+from .alexa_sim import make_alexa_app
 from .store import DEFAULT_FAMILY, make_store
 from .tvapi import make_tv_app
 from .web import make_app
@@ -174,6 +175,7 @@ def build_app():
     app.router.routes.append(Route("/healthz", _healthz))
     app.router.routes.append(Route("/metrics", _metrics))
     if os.getenv("MCP_ONLY") != "1":  # MCP_ONLY=1: AgentCore Runtime container, /mcp (+ /healthz) only
+        app.router.routes.append(Mount("/alexa", make_alexa_app()))  # simulated Alexa+ screen; calls /mcp over HTTP
         app.router.routes.append(Mount("/parent", make_app(coach)))
         app.router.routes.append(Mount("/api", make_tv_app(coach, get_secret("TV_API_TOKEN"))))
     log_event("server_built", schema_version=store.schema_version())
